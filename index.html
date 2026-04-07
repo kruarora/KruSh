@@ -295,7 +295,7 @@
                             .then(function (urls) {
                                 var url = urls[0];
                                 var thumbUrl = urls[1];
-                                return addDoc(collection(db, 'photos'), { url: url, webUrl: url, thumbUrl: thumbUrl, name: submitterName, type: 'video', ts: serverTimestamp(), approved: false });
+                                return addDoc(collection(db, 'photos'), { url: url, webUrl: url, thumbUrl: thumbUrl, name: submitterName, type: 'video', ts: serverTimestamp(), approved: true });
                             })
                             .then(function () {
                                 done++;
@@ -328,7 +328,7 @@
                                 var originalUrl = urls[0];
                                 var webUrl = urls[1];
                                 var thumbUrl = urls[2];
-                                return addDoc(collection(db, 'photos'), { url: originalUrl, webUrl: webUrl, thumbUrl: thumbUrl, name: submitterName, type: 'image', ts: serverTimestamp(), approved: false });
+                                return addDoc(collection(db, 'photos'), { url: originalUrl, webUrl: webUrl, thumbUrl: thumbUrl, name: submitterName, type: 'image', ts: serverTimestamp(), approved: true });
                             })
                             .then(function () {
                                 done++;
@@ -392,7 +392,7 @@
                     document.getElementById('songName').focus();
                     return;
                 }
-                addDoc(collection(db, 'songs'), { title: title, artist: artist, name: name, ts: serverTimestamp(), approved: false })
+                addDoc(collection(db, 'songs'), { title: title, artist: artist, name: name, ts: serverTimestamp(), approved: true })
                     .then(function () {
                         document.getElementById('songTitle').value = '';
                         document.getElementById('songArtist').value = '';
@@ -441,7 +441,7 @@
                     return;
                 }
                 if (!msg) { document.getElementById('gbMessage').focus(); return; }
-                addDoc(collection(db, 'guestbook'), { name: name, message: msg, ts: serverTimestamp(), approved: false })
+                addDoc(collection(db, 'guestbook'), { name: name, message: msg, ts: serverTimestamp(), approved: true })
                     .then(function () {
                         document.getElementById('gbName').value = '';
                         document.getElementById('gbMessage').value = '';
@@ -3728,10 +3728,7 @@
                         </div>
                         <div class="bio-fact"><span class="bio-fact-icon">💻</span><span>Business Analyst, Professional
                                 Overthinker</span></div>
-                        <div class="bio-fact"><span class="bio-fact-icon">⚡</span><span>Decided she was the one in &lt;
-                                24 hours</span></div>
-                        <div class="bio-fact"><span class="bio-fact-icon">💍</span><span>Proposed Nov 8 · Married Nov 11
-                                · Legend</span></div>
+                        <div class="bio-fact"><span class="bio-fact-icon">♍️</span><span>Virgo </span></div>
                     </div>
                 </div>
             </div>
@@ -3774,12 +3771,9 @@
                     </p>
                     <div class="bio-facts">
                         <div class="bio-fact"><span class="bio-fact-icon">🏙️</span><span>Ludiana → Surrey</span></div>
-                        <div class="bio-fact"><span class="bio-fact-icon">✈️</span><span>Counsillor and Case Manager,
+                        <div class="bio-fact"><span class="bio-fact-icon">💻</span><span>Counsillor and Case Manager,
                                 Gossip Gold Medalist.</span></div>
-                        <div class="bio-fact"><span class="bio-fact-icon">💐</span><span>Sent birthday flowers before
-                                they'd even met</span></div>
-                        <div class="bio-fact"><span class="bio-fact-icon">🪔</span><span>Lit up Toronto at Diwali,
-                                literally & figuratively</span></div>
+                        <div class="bio-fact"><span class="bio-fact-icon">♐️</span><span>Sagittarius</span></div>
                     </div>
                 </div>
             </div>
@@ -3933,13 +3927,13 @@
                         <strong>Tuesday, April 14, 2026</strong>
                         Ahmedabad, India
                         <br><br>
-                        Two days of festivities across two beautiful venues: Orient Club and Arya Grand.
+                        Two days of festivities across two beautiful venues: Orient Club and Aarya Grand.
                     </div>
                 </div>
                 <div class="event-card-footer">
                     <div class="event-venues-inline">
                         <span class="event-venue-pill">Orient Club</span>
-                        <span class="event-venue-pill">Arya Grand</span>
+                        <span class="event-venue-pill">Aarya Grand</span>
                     </div>
                 </div>
             </div>
@@ -3971,7 +3965,7 @@
                         <a href="https://maps.app.goo.gl/vg8u1k2qf2xb8o6N8" target="_blank" class="directions-btn">
                             <span class="directions-icon">📍</span>
                             <span class="directions-text">
-                                <span class="directions-venue">Arya Grand</span>
+                                <span class="directions-venue">Aarya Grand</span>
                                 <span class="directions-sub">Baraat · Jay Maala · Phere</span>
                             </span>
                             <span class="directions-arrow">→</span>
@@ -4111,7 +4105,7 @@
                     <div class="schedule-event">
                         <div class="schedule-time">6:00 PM</div>
                         <div>
-                            <div class="schedule-event-name"><span class="schedule-event-icon">Baraat at Arya Grand
+                            <div class="schedule-event-name"><span class="schedule-event-icon">Baraat at Aarya Grand
                             </div>
                             <div class="schedule-event-desc">The groom&rsquo;s procession arrives. Come cheer for
                                 Krutarth!</div>

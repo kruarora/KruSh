@@ -500,6 +500,46 @@
                 updatePanelCounter('gbPendingCount', s.size, 'message');
             });
 
+            // ── LIVE BANNERS (public) ────────────────────────
+            onSnapshot(query(collection(db, 'banners'), where('active', '==', true)), function (snap) {
+                var container = document.getElementById('siteBanners');
+                if (!container) return;
+                container.innerHTML = '';
+                var sorted = snap.docs.slice().sort(function (a, b) {
+                    var ta = a.data().ts ? a.data().ts.toMillis() : 0;
+                    var tb = b.data().ts ? b.data().ts.toMillis() : 0;
+                    return tb - ta;
+                });
+                sorted.forEach(function (d) {
+                    var data = d.data();
+                    var dismissed = sessionStorage.getItem('banner_dismissed_' + d.id);
+                    if (dismissed) return;
+                    var icons = { info: 'ℹ️', warning: '⚠️', urgent: '🚨' };
+                    var type = data.type || 'info';
+                    var div = document.createElement('div');
+                    div.className = 'site-banner ' + type;
+                    div.id = 'banner-' + d.id;
+                    var icon = document.createElement('span');
+                    icon.className = 'banner-icon';
+                    icon.textContent = icons[type] || 'ℹ️';
+                    div.appendChild(icon);
+                    var msg = document.createElement('span');
+                    msg.textContent = data.message;
+                    div.appendChild(msg);
+                    var btn = document.createElement('button');
+                    btn.className = 'banner-dismiss';
+                    btn.textContent = '✕';
+                    btn.title = 'Dismiss';
+                    btn.onclick = function () {
+                        sessionStorage.setItem('banner_dismissed_' + d.id, '1');
+                        div.style.animation = 'bannerSlide .3s ease-in reverse forwards';
+                        setTimeout(function () { div.remove(); }, 300);
+                    };
+                    div.appendChild(btn);
+                    container.appendChild(div);
+                });
+            });
+
 
             // Fetch and render adminGallery for public
             window.galleryPhotos = [];
@@ -1162,6 +1202,88 @@
                     });
                 }
             }
+
+            // ── ADMIN: BANNER MANAGEMENT ─────────────────────
+            (function () {
+                var postBtn = document.getElementById('postBannerBtn');
+                var msgInput = document.getElementById('bannerMsgInput');
+                var typeSelect = document.getElementById('bannerTypeSelect');
+                if (!postBtn || !msgInput) return;
+
+                postBtn.addEventListener('click', function () {
+                    var message = msgInput.value.trim();
+                    if (!message) { alert('Please enter a message.'); return; }
+                    postBtn.disabled = true;
+                    postBtn.textContent = 'Posting…';
+                    addDoc(collection(db, 'banners'), {
+                        message: message,
+                        type: typeSelect.value,
+                        active: true,
+                        ts: serverTimestamp()
+                    }).then(function () {
+                        msgInput.value = '';
+                        postBtn.textContent = 'Post Banner';
+                        postBtn.disabled = false;
+                    }).catch(function (err) {
+                        console.error(err);
+                        alert('Failed to post banner.');
+                        postBtn.textContent = 'Post Banner';
+                        postBtn.disabled = false;
+                    });
+                });
+
+                // Listen to ALL banners for admin list
+                onSnapshot(query(collection(db, 'banners'), orderBy('ts', 'desc')), function (snap) {
+                    var listEl = document.getElementById('adminBannerList');
+                    var countEl = document.getElementById('bannerCount');
+                    if (!listEl) return;
+                    var activeCount = 0;
+                    snap.docs.forEach(function (d) { if (d.data().active) activeCount++; });
+                    if (countEl) countEl.textContent = activeCount + ' active';
+                    if (snap.empty) {
+                        listEl.innerHTML = '<div class="admin-empty">No announcements yet</div>';
+                        return;
+                    }
+                    listEl.innerHTML = '';
+                    snap.docs.forEach(function (d) {
+                        var data = d.data();
+                        var item = document.createElement('div');
+                        item.className = 'banner-admin-item';
+
+                        var badge = document.createElement('span');
+                        badge.className = 'banner-type-badge ' + (data.type || 'info');
+                        badge.textContent = (data.type || 'info').toUpperCase();
+                        item.appendChild(badge);
+
+                        var msg = document.createElement('span');
+                        msg.className = 'banner-msg';
+                        msg.textContent = data.message;
+                        if (!data.active) msg.style.opacity = '0.4';
+                        item.appendChild(msg);
+
+                        var toggleBtn = document.createElement('button');
+                        toggleBtn.className = 'banner-toggle ' + (data.active ? 'active' : 'inactive');
+                        toggleBtn.textContent = data.active ? 'LIVE' : 'OFF';
+                        toggleBtn.onclick = function () {
+                            updateDoc(doc(db, 'banners', d.id), { active: !data.active });
+                        };
+                        item.appendChild(toggleBtn);
+
+                        var delBtn = document.createElement('button');
+                        delBtn.className = 'banner-delete';
+                        delBtn.textContent = '✕';
+                        delBtn.title = 'Delete banner';
+                        delBtn.onclick = function () {
+                            if (confirm('Delete this banner permanently?')) {
+                                deleteDoc(doc(db, 'banners', d.id));
+                            }
+                        };
+                        item.appendChild(delBtn);
+
+                        listEl.appendChild(item);
+                    });
+                });
+            })();
 
             // ── COUNTDOWN ─────────────────────────────────────────
             (function () {
@@ -2173,7 +2295,7 @@
             position: fixed;
             inset: 0;
             background: rgba(20, 5, 8, .92);
-            z-index: 999;
+            z-index: 4000;
             align-items: center;
             justify-content: center;
             flex-direction: column;
@@ -2201,7 +2323,7 @@
             line-height: 1;
             background: none;
             border: none;
-            z-index: 1001
+            z-index: 4001
         }
 
         .lightbox-close:hover {
@@ -2221,7 +2343,7 @@
             transition: color .2s;
             line-height: 1;
             user-select: none;
-            z-index: 1001
+            z-index: 4001
         }
 
         .photo-lightbox-nav:hover {
@@ -2671,6 +2793,88 @@
             font-size: 1rem;
             padding: 20px 0
         }
+
+        /* ── SITE BANNERS (public) ─────────────────────────── */
+        #siteBanners { position: relative; z-index: 999; }
+        .site-banner {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            padding: 12px 48px 12px 20px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(.95rem, 2.2vw, 1.15rem);
+            line-height: 1.4;
+            text-align: center;
+            animation: bannerSlide .4s ease-out;
+            position: relative;
+        }
+        .site-banner.info {
+            background: #ffffff;
+            border-bottom: 2px solid #b8955a;
+            color: #4a0d1a;
+        }
+        .site-banner.warning {
+            background: #ffffff;
+            border-bottom: 2px solid #d2a032;
+            color: #8c5a00;
+        }
+        .site-banner.urgent {
+            background: #ffffff;
+            border-bottom: 2px solid #b42828;
+            color: #a00000;
+        }
+        .site-banner .banner-icon { font-size: 1.1em; flex-shrink: 0; }
+        .site-banner .banner-dismiss {
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: inherit; opacity: 0.8;
+            cursor: pointer; font-size: 1.4rem; font-weight: bold; padding: 4px 8px; line-height: 1;
+            transition: all .2s;
+        }
+        .site-banner .banner-dismiss:hover { opacity: 1; color: #000000; transform: translateY(-50%) scale(1.1); }
+        @keyframes bannerSlide { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── ADMIN: Banner management ─────────────────────── */
+        .banner-form {
+            display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+            margin-bottom: 18px;
+        }
+        .banner-form input[type="text"] {
+            flex: 1 1 200px; padding: 10px 14px; border-radius: 20px;
+            border: 1px solid rgba(184,149,90,.3); background: rgba(255,255,255,.06);
+            color: var(--cream); font-family: 'Cormorant Garamond', serif; font-size: 1rem;
+        }
+        .banner-form input[type="text"]::placeholder { color: rgba(255,249,242,.3); }
+        .banner-form select {
+            padding: 10px 14px; border-radius: 20px;
+            border: 1px solid rgba(184,149,90,.3); background: rgba(30,10,15,.8);
+            color: var(--cream); font-family: 'Cinzel', serif; font-size: .7rem;
+            letter-spacing: .1em; cursor: pointer;
+        }
+        .banner-admin-item {
+            background: rgba(255,255,255,.04); border: 1px solid rgba(184,149,90,.12);
+            padding: 14px 18px; margin-bottom: 8px; display: flex;
+            align-items: center; gap: 14px; border-radius: 4px;
+        }
+        .banner-admin-item .banner-msg { flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 1rem; color: var(--cream); }
+        .banner-type-badge {
+            font-family: 'Cinzel', serif; font-size: .6rem; letter-spacing: .12em;
+            text-transform: uppercase; padding: 2px 10px; border-radius: 20px;
+        }
+        .banner-type-badge.info { background: rgba(184,149,90,.15); border: 1px solid rgba(184,149,90,.3); color: var(--gold-light); }
+        .banner-type-badge.warning { background: rgba(210,160,50,.15); border: 1px solid rgba(210,160,50,.3); color: #f0d060; }
+        .banner-type-badge.urgent { background: rgba(180,40,40,.15); border: 1px solid rgba(200,60,60,.3); color: #ff9090; }
+        .banner-toggle {
+            padding: 4px 12px; border-radius: 20px; font-size: .65rem;
+            font-family: 'Cinzel', serif; letter-spacing: .1em; cursor: pointer;
+            border: 1px solid rgba(184,149,90,.3); transition: all .2s;
+        }
+        .banner-toggle.active { background: rgba(40,120,60,.2); color: rgba(100,220,120,.85); border-color: rgba(40,180,80,.3); }
+        .banner-toggle.inactive { background: rgba(255,255,255,.06); color: rgba(255,249,242,.4); }
+        .banner-delete {
+            background: none; border: 1px solid rgba(200,60,60,.3); color: #ff9090;
+            padding: 4px 10px; border-radius: 20px; font-size: .65rem;
+            font-family: 'Cinzel', serif; letter-spacing: .1em; cursor: pointer;
+            transition: all .2s;
+        }
+        .banner-delete:hover { background: rgba(180,40,40,.2); }
 
         .admin-item {
             background: rgba(255, 255, 255, .04);
@@ -3279,7 +3483,7 @@
             inset: 0;
             background: rgba(74, 13, 26, .75);
             backdrop-filter: blur(6px);
-            z-index: 200;
+            z-index: 3000;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -3431,7 +3635,7 @@
             position: fixed;
             inset: 0;
             background: rgba(20, 5, 5, .96);
-            z-index: 300;
+            z-index: 4000;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -3645,15 +3849,20 @@
 
 <body>
 
-    <nav id="nav">
-        <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" title="Home"
-            style="font-size:1rem;line-height:1">⌂</a>
-        <a href="#story">Our Story</a>
-        <a href="#events">The Wedding</a>
-        <a href="#gallery">Gallery</a>
-        <a href="#guest-hub">Guest Corner</a>
-        <a href="#admin" title="Admin">🔒</a>
-    </nav>
+    <header id="headerWrapper" style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; display: flex; flex-direction: column;">
+        <!-- SITE BANNERS (populated by Firestore) -->
+        <div id="siteBanners"></div>
+    
+        <nav id="nav" style="position: relative; z-index: 100;">
+            <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" title="Home"
+                style="font-size:1rem;line-height:1">⌂</a>
+            <a href="#story">Our Story</a>
+            <a href="#events">The Wedding</a>
+            <a href="#gallery">Gallery</a>
+            <a href="#guest-hub">Guest Corner</a>
+            <a href="#admin" title="Admin">🔒</a>
+        </nav>
+    </header>
 
     <!-- HERO -->
     <div class="hero">
@@ -4300,6 +4509,23 @@
                 <span class="admin-title">🔒 Moderation Dashboard</span>
                 <button class="admin-close" id="adminSignOutBtn" style="margin-right:8px">🚪 Sign Out</button>
                 <button class="admin-close" id="adminCloseBtn">✕ Close</button>
+            </div>
+
+            <!-- Banners management -->
+            <div class="admin-section">
+                <div class="admin-section-title">📢 Site Announcements <span class="admin-badge" id="bannerCount">0 active</span></div>
+                <div class="banner-form">
+                    <input type="text" id="bannerMsgInput" placeholder="Enter announcement message…">
+                    <select id="bannerTypeSelect">
+                        <option value="info">ℹ️ Info</option>
+                        <option value="warning">⚠️ Warning</option>
+                        <option value="urgent">🚨 Urgent</option>
+                    </select>
+                    <button class="hub-btn" id="postBannerBtn">Post Banner</button>
+                </div>
+                <div id="adminBannerList">
+                    <div class="admin-empty">No announcements yet</div>
+                </div>
             </div>
 
             <!-- Photos: pending -->
